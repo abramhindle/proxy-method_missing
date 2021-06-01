@@ -2,6 +2,7 @@
 #+PROPERTY: header-args:C             :exports both :eval yes :flags -std=c99 -pedantic -Wall -Wextra -ftrapv -ggdb3 :eval yes :results value verbatim
 #+PROPERTY: header-args:sh            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:rb            :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:ruby            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:js            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:shell         :exports both :eval yes :results value verbatim
 
@@ -26,32 +27,6 @@ The Proxy wraps or decorates another object and intercepts calls to
 it.
 
 You can intercept property accesses
-
-*** The proxy handler is poorly documented.
-
-I found most documentation within the spec itself and it put in
-different sections.
-
-Handler is an object with methods that the proxy will call. You can
-use an kind of object to be the handler. If the handler is undefined,
-the default action will happen.
-
-https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
-
-    - get
-    - set
-    - has
-    - deleteProperty
-    - defineProperty
-    - getOwnPropertyDescriptor
-    - preventExtensions
-    - isExtensible
-    - getPrototypeOf
-    - setPrototypeOf
-    - ownKeys
-    - apply
-    - construct
-
 
 *** Example intercept get
 
@@ -83,6 +58,31 @@ console.log("obj.salad\t",obj.salad);
 : undefined
 
 Let's be honest, why are you returning a string on a miss?
+
+*** The proxy handler is poorly documented.
+
+I found most documentation within the spec itself and it put in
+different sections.
+
+Handler is an object with methods that the proxy will call. You can
+use an kind of object to be the handler. If the handler is undefined,
+the default action will happen.
+
+https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
+
+    - get
+    - set
+    - has
+    - deleteProperty
+    - defineProperty
+    - getOwnPropertyDescriptor
+    - preventExtensions
+    - isExtensible
+    - getPrototypeOf
+    - setPrototypeOf
+    - ownKeys
+    - apply
+    - construct
 
 *** Default Return Value
 
@@ -197,6 +197,39 @@ You can use Proxy in Javascript to decorate other objects in order to intercept 
 You NEED to wrap those objects with Proxy for it to work.
 
 
+** Ruby Missing Method
+
+#+BEGIN_SRC ruby :exports both :session x
+class Dog
+  def initialize()
+  end
+  def speak()
+    "Ruff"
+  end
+end
+
+class Cat
+  def initialize()
+    @delegate = Dog.new()
+  end
+  def method_missing(m, *args, &block)
+    @delegate.send(m, *args, &block)
+  end
+end
+
+cat = Cat.new()
+cat.speak()
+class Cat
+  def speak
+     "meow"
+  end
+end
+cat = Cat.new()
+cat.speak()
+#+END_SRC
+
+#+RESULTS:
+: meow
 
 ** Copyright Statement
 
@@ -211,6 +244,8 @@ depending on the example.
 ;; I need this for org-mode to work well
 ;; If we have a new org-mode use ob-shell
 ;; otherwise use ob-sh --- but not both!
+(require 'ob-ruby)
+
 (if (require 'ob-shell nil 'noerror)
   (progn
     (org-babel-do-load-languages 'org-babel-load-languages '((shell . t))))
@@ -262,10 +297,23 @@ console.log("this is a Node.js test program!");
 console.log("this is a Node.js test program! again");
 #+END_SRC
 
-
-
 #+RESULTS:
 : this is a Node.js test program!
 : this is a Node.js test program! again
 : undefined
 
+#+BEGIN_SRC ruby :exports both
+[12,"ruby"]
+#+END_SRC
+
+#+RESULTS:
+: [12, "ruby"]
+
+#+BEGIN_SRC ruby :exports both :session x
+class XYZ
+end
+XYZ.new()
+#+END_SRC
+
+#+RESULTS:
+: #<XYZ:0x000055d72433d5f0>
