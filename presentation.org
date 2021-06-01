@@ -1,0 +1,271 @@
+#+TITLE: Metaprogramming in JS and Ruby: Javascript Proxy and Ruby Missing Method
+#+PROPERTY: header-args:C             :exports both :eval yes :flags -std=c99 -pedantic -Wall -Wextra -ftrapv -ggdb3 :eval yes :results value verbatim
+#+PROPERTY: header-args:sh            :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:rb            :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:js            :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:shell         :exports both :eval yes :results value verbatim
+
+* MetaProgramming in JS and Ruby
+** Metaprogramming
+   - Programming about Programming
+   - Treating programs as data to be processed
+   - Macros are an example, generate code for code with code.
+** Proxy in Javascript
+
+Good documentation on Proxy is found here:
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
+
+The actual specification of Proxy is found here:
+https://tc39.es/ecma262/#sec-proxy-objects
+
+Many things you want to do with proxy will require reflection. The
+Reflect object is described in the spec here:
+https://tc39.es/ecma262/#sec-reflect-object
+
+The Proxy wraps or decorates another object and intercepts calls to
+it.
+
+You can intercept property accesses
+
+*** The proxy handler is poorly documented.
+
+I found most documentation within the spec itself and it put in
+different sections.
+
+Handler is an object with methods that the proxy will call. You can
+use an kind of object to be the handler. If the handler is undefined,
+the default action will happen.
+
+https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
+
+    - get
+    - set
+    - has
+    - deleteProperty
+    - defineProperty
+    - getOwnPropertyDescriptor
+    - preventExtensions
+    - isExtensible
+    - getPrototypeOf
+    - setPrototypeOf
+    - ownKeys
+    - apply
+    - construct
+
+
+*** Example intercept get
+
+#+BEGIN_SRC js :exports both
+function handlerGet(target, prop, receiver) {
+  if (prop in target) {
+    return target[prop]; //Reflect.get(...arguments);
+  } else {
+    return `Prop: ${prop} not found`;
+  }
+}
+function makeHandler() {
+	return {
+		get: handlerGet
+	}
+}
+var obj = {};
+var po = new Proxy(obj,makeHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+#+END_SRC
+
+#+RESULTS:
+: Fruit:	 durian
+: Salad:	 Prop: salad not found
+: obj.salad	 undefined
+: undefined
+
+Let's be honest, why are you returning a string on a miss?
+
+*** Default Return Value
+
+#+BEGIN_SRC js :exports both
+function makeHandler( defaultValue = false ) {
+  return {
+    get: function(target, prop, receiver) {
+      if (prop in target) {
+        return target[prop]; //Reflect.get(...arguments);
+      } else {
+        return defaultValue;
+      }
+    }
+  }
+}
+var obj = {};
+var po = new Proxy(obj,makeHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+#+END_SRC
+
+#+RESULTS:
+: durian
+: false
+: undefined
+
+*** Autovivify 
+
+In perl if you access chains of objects it can create objects along the way.
+
+#+BEGIN_SRC js :exports both
+function makeHandler( defaultValue = false ) {
+  return {
+    get: function(target, prop, receiver) {
+      if (!(prop in target)) {
+        target[prop] = defaultValue;
+      }
+      return target[prop]; //Reflect.get(...arguments);
+
+    }
+  }
+}
+obj = {};
+po = new Proxy(obj,makeHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+#+END_SRC
+
+#+RESULTS:
+: Fruit:	 durian
+: Salad:	 false
+: obj.salad	 false
+: undefined
+
+*** Autovivify Perl Style
+
+In perl if you access chains of objects it can create objects along the way.
+
+#+BEGIN_SRC js :exports both
+function makeVivifyHandler() {
+  return {
+    get: function(target, prop, receiver) {
+      if (!(prop in target)) {
+        target[prop] = new Proxy({},makeVivifyHandler());
+      }
+      return target[prop]; //Reflect.get(...arguments);
+    }
+  }
+}
+var obj = {};
+var po = new Proxy(obj,makeVivifyHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+console.log("obj\t",obj);
+console.log("obj.salad.what\t",obj.salad.what);
+console.log("obj\t",obj);
+console.log("po.salad.what\t",po.salad.what);
+console.log("obj\t",obj);
+console.log("po.salad.what.huh.zuh\t", po.salad.what.huh.zuh);
+console.log("obj\t",obj);
+console.log("salad" in po);
+console.log("dessert" in po);
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Fruit:	 durian
+Salad:	 {}
+obj.salad	 {}
+obj	 { fruit: 'durian', salad: {} }
+obj.salad.what	 {}
+obj	 { fruit: 'durian', salad: { what: {} } }
+po.salad.what	 {}
+obj	 { fruit: 'durian', salad: { what: {} } }
+po.salad.what.huh.zuh	 {}
+obj	 { fruit: 'durian', salad: { what: { huh: [Object] } } }
+true
+false
+undefined
+#+end_example
+
+*** Proxy Summary
+
+You can use Proxy in Javascript to decorate other objects in order to intercept calls.
+
+You NEED to wrap those objects with Proxy for it to work.
+
+
+
+** Copyright Statement
+
+Code is (c) 2021 Abram Hindle. 
+
+Unless stated otherwise, assume Python license, or Ruby license
+depending on the example.
+
+** Init ORG-MODE
+
+#+BEGIN_SRC elisp
+;; I need this for org-mode to work well
+;; If we have a new org-mode use ob-shell
+;; otherwise use ob-sh --- but not both!
+(if (require 'ob-shell nil 'noerror)
+  (progn
+    (org-babel-do-load-languages 'org-babel-load-languages '((shell . t))))
+  (progn
+    (require 'ob-sh)
+    (org-babel-do-load-languages 'org-babel-load-languages '((sh . t)))))
+(org-babel-do-load-languages 'org-babel-load-languages '((C . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((js . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((python . t)))
+(setq org-babel-js-function-wrapper
+      "process.stdout.write(require('util').inspect(function(){\n%s\n}(), { maxArrayLength: null, maxStringLength: null, breakLength: Infinity, compact: true }))")
+(setq org-src-fontify-natively t)
+(setq org-confirm-babel-evaluate nil) ;; danger!
+(custom-set-faces
+ '(org-block ((t (:inherit shadow :foreground "black"))))
+ '(org-code ((t (:inherit shadow :foreground "black")))))
+#+END_SRC
+
+#+RESULTS:
+
+*** Org export
+#+BEGIN_SRC elisp
+(org-html-export-to-html)
+(org-latex-export-to-pdf)
+(org-ascii-export-to-ascii)
+#+END_SRC
+
+#+RESULTS:
+: presentation.txt
+
+
+*** Org Template
+Copy and paste this to demo C
+
+#+BEGIN_SRC C :exports both
+#include <stdio.h>
+
+int main(int argc, char**argv) {
+    return 0;
+}
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC js :exports both
+var util = require("util");
+console.log("this is a Node.js test program!");
+console.log("this is a Node.js test program! again");
+#+END_SRC
+
+
+
+#+RESULTS:
+: this is a Node.js test program!
+: this is a Node.js test program! again
+: undefined
+
