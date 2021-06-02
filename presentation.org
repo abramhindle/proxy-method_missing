@@ -11,7 +11,46 @@
    - Programming about Programming
    - Treating programs as data to be processed
    - Macros are an example, generate code for code with code.
-** Proxy in Javascript
+   - Code that makes code
+   - Code that acts like the language would
+   - Code about programming
+
+** Goal for today
+   - Allow objects in Javascript and Ruby to handle complex
+     messages/method calls to them that might not be defined.
+   - Learn about Proxy in Javascript
+   - Learn about method_missing in Ruby
+
+** Concepts
+
+   Javascript and Ruby are both OO dynamically typed languages. They
+   have many similarities and differences.
+
+   - Object: an object has attributes or properties, it can
+     handle method calls or messages sent to it. It often inherits
+     methods from a class. Objects know themselves and have identity.
+     - Objects represent things and individuals.
+     - Objects often have a class.
+   - Class: the structure (methods/messages and attributes/properties)
+     that acts as factory for objects.
+     - Classes create objects.
+   - Instance: an object made from a class.
+   - Attribute/Property/Instance Variables: a value or variable
+     associated with an object, encapsulated by the object.
+   - Method: code that is bound to an object that runs in the
+     context of the object, accessing its attributes/properties.
+   - Method Call / Message: a function called within the context of an
+     object, that has access to the object and its attributes.
+   - Delegate: an object you delegate to, an object your object has
+     and defers operations (methods or messages or methods to)
+   - Proxy/Decorate/Wrap/Adapt: programmer slang for something that
+     receives messages, does a little more work, and then delegates to
+     another object
+
+** Proxy in Javascript :js:
+
+Javascript allows some metaprogramming through Reflect and Proxy.
+Proxy allows intercepting and wrapping of method calls.
 
 Good documentation on Proxy is found here:
 https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
@@ -24,45 +63,14 @@ Reflect object is described in the spec here:
 https://tc39.es/ecma262/#sec-reflect-object
 
 The Proxy wraps or decorates another object and intercepts calls to
-it.
+it. You can intercept property accesses, you can intercept property
+gets, set, deletions, definitions. You can even intercept playing with
+prototypes. You can override has.
 
-You can intercept property accesses
+*** The proxy handler is poorly documented. :js:
 
-*** Example intercept get
-
-#+BEGIN_SRC js :exports both
-function handlerGet(target, prop, receiver) {
-  if (prop in target) {
-    return target[prop]; //Reflect.get(...arguments);
-  } else {
-    return `Prop: ${prop} not found`;
-  }
-}
-function makeHandler() {
-	return {
-		get: handlerGet
-	}
-}
-var obj = {};
-var po = new Proxy(obj,makeHandler());
-po.fruit = "durian";
-console.log("Fruit:\t",po.fruit);
-console.log("Salad:\t",po.salad);
-console.log("obj.salad\t",obj.salad);
-#+END_SRC
-
-#+RESULTS:
-: Fruit:	 durian
-: Salad:	 Prop: salad not found
-: obj.salad	 undefined
-: undefined
-
-Let's be honest, why are you returning a string on a miss?
-
-*** The proxy handler is poorly documented.
-
-I found most documentation within the spec itself and it put in
-different sections.
+I found most documentation within the spec itself and it was put in
+different sections and quite confusing.
 
 Handler is an object with methods that the proxy will call. You can
 use an kind of object to be the handler. If the handler is undefined,
@@ -83,6 +91,45 @@ https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
     - ownKeys
     - apply
     - construct
+
+*** Example intercept get :js:
+
+We're going to intercept the access of properties in Javascript.
+
+First we need a function to handle the access `handlerGet`. Then we
+need to make a structure (called the Handler) that is an object with a
+method that addresses the operation we are wrapping. In this case the
+operation is `get`.
+
+#+BEGIN_SRC js :exports both
+function handlerGet(target, prop, receiver) {
+  if (prop in target) {
+    return target[prop]; //Reflect.get(...arguments);
+  } else {
+    return `Prop: ${prop} not found`;
+  }
+}
+
+function makeHandler() {
+	return {
+		get: handlerGet
+	}
+}
+var obj = {};
+var po = new Proxy(obj,makeHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+#+END_SRC
+
+#+RESULTS:
+: Fruit:	 durian
+: Salad:	 Prop: salad not found
+: obj.salad	 undefined
+: undefined
+
+Let's be honest, why are you returning a string on a miss?
 
 *** Default Return Value
 
@@ -199,15 +246,62 @@ You NEED to wrap those objects with Proxy for it to work.
 
 ** Ruby Missing Method
 
+When you call a method, if the method does not exist in the current
+object's class or it's superclasses then method_missing is called and
+handled by the lowest level class to handle it.
+
+The block, the method arguments and the method's name (`method_name`)
+(as a symbol) will be passed to the method method_missing.
+
+This is not a decorator, this is a method that is called on the object
+when is there is no method to be called for `method_name`
+
+#+BEGIN_SRC ruby :eval no :exports code :session x
+  def method_missing(method_name, *method_arguments, &block)
+    nil
+  end
+#+END_SRC
+
+*** Example of method missing responding to missing methods
+
 #+BEGIN_SRC ruby :exports both :session x
+class Example
+  def initialize()
+  end
+  def method_missing(m, *args, &block)
+    @last_call = [:method_missing, m, *args, block]
+  end
+end
+example = Example.new()
+lc1 = example.eat("Pie")
+lc2 = example.block(:Arg1) { |x|  x }
+{:lc1=>lc1,:lc2=>lc2}
+#+END_SRC
+
+#+RESULTS:
+: {:lc1=>[:method_missing, :eat, "Pie", nil], :lc2=>[:method_missing, :block, :Arg1, #<Proc:0x0000563dee559df8 (irb):84>]}
+
+*** Delegation is easy
+
+#+BEGIN_SRC ruby :exports both :session x
+Object.send(:remove_const,:Dog) # Make sure there's no Dog class
 class Dog
   def initialize()
   end
   def speak()
     "Ruff"
   end
+  def legs()
+    4
+  end
 end
+#+END_SRC
 
+#+RESULTS:
+: :legs
+
+#+BEGIN_SRC ruby :exports both :session x
+Object.send(:remove_const,:Cat) # Make sure there's no Cat class
 class Cat
   def initialize()
     @delegate = Dog.new()
@@ -216,20 +310,40 @@ class Cat
     @delegate.send(m, *args, &block)
   end
 end
+#+END_SRC
 
+#+RESULTS:
+: :method_missing
+
+#+BEGIN_SRC ruby :exports both :session x
 cat = Cat.new()
 cat.speak()
+#+END_SRC
+
+#+RESULTS:
+: Ruff
+
+#+BEGIN_SRC ruby :exports both :session x
 class Cat
   def speak
      "meow"
   end
 end
 cat = Cat.new()
-cat.speak()
+[cat.speak(), cat.legs()]
 #+END_SRC
 
 #+RESULTS:
-: meow
+: ["meow", 5]
+
+#+BEGIN_SRC ruby :exports both :session x
+cat = Cat.new()
+cat.consume_the_sun()
+#+END_SRC
+
+#+RESULTS:
+: #<NoMethodError: undefined method `consume_the_sun' for #<Dog:0x0000563dee4f5a88>>
+
 
 ** Copyright Statement
 
@@ -244,7 +358,9 @@ depending on the example.
 ;; I need this for org-mode to work well
 ;; If we have a new org-mode use ob-shell
 ;; otherwise use ob-sh --- but not both!
-(require 'ob-ruby)
+;;(require 'ob-ruby)
+;;(require 'inf-ruby)
+;;(require 'enh-ruby-mode)
 
 (if (require 'ob-shell nil 'noerror)
   (progn
@@ -263,6 +379,7 @@ depending on the example.
 (custom-set-faces
  '(org-block ((t (:inherit shadow :foreground "black"))))
  '(org-code ((t (:inherit shadow :foreground "black")))))
+;(setq inf-ruby-default-implementation "ruby")
 #+END_SRC
 
 #+RESULTS:
@@ -316,4 +433,4 @@ XYZ.new()
 #+END_SRC
 
 #+RESULTS:
-: #<XYZ:0x000055d72433d5f0>
+: #<XYZ:0x0000563dee304418>
