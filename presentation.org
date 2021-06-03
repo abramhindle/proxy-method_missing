@@ -2,8 +2,8 @@
 #+PROPERTY: header-args:C             :exports both :eval yes :flags -std=c99 -pedantic -Wall -Wextra -ftrapv -ggdb3 :eval yes :results value verbatim
 #+PROPERTY: header-args:sh            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:rb            :exports both :eval yes :results value verbatim
-#+PROPERTY: header-args:ruby            :exports both :eval yes :results value verbatim
-#+PROPERTY: header-args:perl            :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:ruby          :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:perl          :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:js            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:shell         :exports both :eval yes :results value verbatim
 
@@ -484,6 +484,170 @@ default parameter and just had it create itself instead.
  : ["#<AutoViva:0x000055e7052fadb8 @a=:instance>", "#<AutoViva:0x000055e705306ac8 @c=\"x\", @a=#<AutoViva:0x000055e705300858 @b=#<AutoViva:0x000055e705300718 @c=#<AutoViva:0x000055e7053005d8 @d=#<AutoViva:0x000055e705300498>, @e=:liskovviolation>>>>"]
 
 
+*** Multimethods
+
+Multimethods inspect the arguments and delegate based on them.
+
+**** Multimethods Javascript :js:
+
+#+BEGIN_SRC js :exports both
+class Example {
+    a$number$number(x,y) {
+	return x + y
+    }
+    a$string$number(s,n) {
+	return [...Array(n)].map(() => s).join("")
+    }
+}
+function makeSimpleMultiMethod(prefix) {
+    return function() {
+		let sig = prefix + "$" + [...arguments].map(x => typeof(x)).join("$");
+	if (sig in this) {
+	    return this[sig](...arguments);
+	} else {
+	    throw (sig + ' not in ' + this)
+	}
+    }
+}
+function handlerGet(target, prop, receiver) {
+    props = prop.toString();
+    if (props in target) {
+        return Reflect.get(target,prop,receiver);
+    }
+    target[props] = makeSimpleMultiMethod(prop);
+    return Reflect.get(target, prop, receiver);
+}
+function makeHandler() {
+    return {
+	get: handlerGet
+    }
+}
+// We can wrap it with proxy
+pe = new Proxy(new Example(),makeHandler());
+console.log( "pe.a(1,2)    "     ,       pe.a(1,2)    );
+console.log( "pe.a(\"x\",5)  "   ,       pe.a("x",5)  );
+try {
+    console.log( "pe.a(\"x\",\"x\")" ,       pe.a("x","x"));
+} catch (err) {
+    console.log("Error "+err);
+}
+#+END_SRC
+
+#+RESULTS:
+: pe.a(1,2)     3
+: pe.a("x",5)   xxxxx
+: Error a$string$string not in [object Object]
+: undefined
+
+
+**** But we don't actually need proxy to do this!
+
+Since we can make a multimethod on the fly, we can also just make
+multimethods intentionally.
+
+#+BEGIN_SRC js :exports both
+class Example {
+    a$number$number(x,y) {
+	return x + y
+    }
+    a$string$number(s,n) {
+	return [...Array(n)].map(() => s).join("")
+    }
+}
+function makeSimpleMultiMethod(prefix) {
+    return function() {
+		let sig = prefix + "$" + [...arguments].map(x => typeof(x)).join("$");
+	if (sig in this) {
+	    return this[sig](...arguments);
+	} else {
+	    throw (sig + ' not in ' + this)
+	}
+    }
+}
+
+// We can forget proxy and just make the method a multi method by default
+Example.prototype.a = makeSimpleMultiMethod("a");
+
+e = new Example();
+console.log( "e.a(1,2)    "     ,       e.a(1,2)    );
+console.log( "e.a(\"x\",5)  "   ,       e.a("x",5)  );
+try {
+    console.log( "e.a(\"x\",\"x\")" ,       e.a("x","x"));
+} catch (err) {
+    console.log("Error "+err);
+}
+#+END_SRC
+
+#+RESULTS:
+: e.a(1,2)     3
+: e.a("x",5)   xxxxx
+: Error a$string$string not in [object Object]
+: undefined
+
+
+**** Multimethods Ruby                                                 :ruby:
+
+For ruby we're going to make a utility method that inspects an object
+and suggests a method to call instead.
+
+#+BEGIN_SRC ruby :exports both :session x
+
+def resolve_simple_multi_method(obj,method,args)
+  sig = (method.to_s + "__" + args.map {|x| x.class.to_s }.join("__")).to_sym
+  if obj.methods.include? sig
+    return sig
+  else
+    raise (sig.to_s + " not found")
+  end
+end
+
+class MMExample
+  def a__Integer__Integer(x,y)
+    x + y
+  end
+  def a__String__Integer(s,n)
+    s * n
+  end
+  def method_missing(method_name, *method_arguments, &block)
+    new_method = resolve_simple_multi_method(self, method_name, method_arguments)
+    self.send( new_method, *method_arguments, &block)
+  end
+end
+
+mme = MMExample.new
+[mme.a(1,2), mme.a("x",7)]
+#+END_SRC
+
+#+RESULTS:
+: [3, "xxxxxxx"]
+
+What about something now yet defined?
+
+#+BEGIN_SRC ruby :exports both :session x
+mme.a("x","x")
+#+END_SRC
+
+#+RESULTS:
+: #<RuntimeError: a__String__String not found>
+
+And being ruby we can open it for extension any time.
+
+#+BEGIN_SRC ruby :exports both :session x
+class MMExample
+  def a__Integer__Integer__Integer(x,y,z)
+    x ** y ** z
+  end
+end
+
+mme.a(2,2,5)
+#+END_SRC
+
+#+RESULTS:
+: 4294967296
+
+Of course there are many multidispatch and multimethod gems for ruby.
+It's just good to understand how they would work
+
 ** Dangers of meta-programming
    - It's confusing
    - You can't grep for function definitions
@@ -493,6 +657,12 @@ default parameter and just had it create itself instead.
      - You can always throw an exception and/or force a backtrace.
        - `console.trace()` :js:
        - `exception.backtrace` :rb:
+
+** Conclusion
+   - Reflect and Proxy are your buddies for Metaprogramming in Javascript
+   - Method Missing, and Object are your buddies for Metaprogramming in Ruby
+   - Reflection and message passing all for powerful constructs that
+     will confuse just about anyone reading your code.
 
 ** Copyright Statement
 
@@ -588,7 +758,7 @@ XYZ.new()
 #+END_SRC
 
 #+RESULTS:
-: #<XYZ:0x0000563dee304418>
+: #<XYZ:0x000055e4669dcbf0>
 
 #+BEGIN_SRC perl :exports both
 use Data::Dumper;

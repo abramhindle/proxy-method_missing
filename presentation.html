@@ -1,0 +1,1310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2021-06-03 Thu 16:36 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Metaprogramming in JS and Ruby: Javascript Proxy and Ruby Method Missing</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Abram" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">Metaprogramming in JS and Ruby: Javascript Proxy and Ruby Method Missing</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#org7f58503">1. MetaProgramming in JS and Ruby: Javascript `Proxy` and Ruby `method<sub>missing</sub>`</a>
+<ul>
+<li><a href="#org3222e2d">1.1. Metaprogramming</a>
+<ul>
+<li><a href="#org6b02eb7">1.1.1. To quote Mark</a></li>
+</ul>
+</li>
+<li><a href="#org4105457">1.2. Goal for today</a></li>
+<li><a href="#org7c4ee40">1.3. Concepts</a></li>
+<li><a href="#org047e930">1.4. Proxy in Javascript&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></a>
+<ul>
+<li><a href="#org08edeb7">1.4.1. The proxy handler is poorly documented.&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></a></li>
+<li><a href="#orgf99df78">1.4.2. Example intercept `get`&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></a></li>
+<li><a href="#orgf9246bd">1.4.3. Default Return Value&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></a></li>
+<li><a href="#orgbb03a99">1.4.4. Proxy Summary</a></li>
+</ul>
+</li>
+<li><a href="#org077aba4">1.5. Ruby Method Missing&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span></a>
+<ul>
+<li><a href="#org769b9db">1.5.1. Example of method missing responding to missing methods&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span></a></li>
+<li><a href="#org929347e">1.5.2. Delegation is easy&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span></a></li>
+</ul>
+</li>
+<li><a href="#org031224f">1.6. Examples</a>
+<ul>
+<li><a href="#org0fcf685">1.6.1. Autovivify&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></a></li>
+<li><a href="#org9d49e8d">1.6.2. Autovivify Perl Style</a></li>
+<li><a href="#orgccd4ce4">1.6.3. Multimethods</a></li>
+</ul>
+</li>
+<li><a href="#org556bd29">1.7. Dangers of meta-programming</a></li>
+<li><a href="#orgea4b1c0">1.8. Conclusion</a></li>
+<li><a href="#org7de586f">1.9. Copyright Statement</a></li>
+<li><a href="#orgcaec8cf">1.10. Init ORG-MODE</a>
+<ul>
+<li><a href="#org75b9622">1.10.1. Org export</a></li>
+<li><a href="#org7820a05">1.10.2. Org Template</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org7f58503" class="outline-2">
+<h2 id="org7f58503"><span class="section-number-2">1</span> MetaProgramming in JS and Ruby: Javascript `Proxy` and Ruby `method<sub>missing</sub>`</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-org3222e2d" class="outline-3">
+<h3 id="org3222e2d"><span class="section-number-3">1.1</span> Metaprogramming</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>meta is "referring to itself" or "Self-referential"
+<ul class="org-ul">
+<li>thus meta-programming is programming referring to itself.</li>
+</ul></li>
+<li>Programming about Programming</li>
+<li>Treating programs as data to be processed</li>
+<li>Macros are an example, generate code for code with code.</li>
+<li>Code that makes code</li>
+<li>Code that acts like the language would</li>
+<li>Code about programming</li>
+</ul>
+</div>
+
+<div id="outline-container-org6b02eb7" class="outline-4">
+<h4 id="org6b02eb7"><span class="section-number-4">1.1.1</span> To quote Mark</h4>
+<div class="outline-text-4" id="text-1-1-1">
+<ul class="org-ul">
+<li>"CODE IS DATA, DATA IS CODE" &#x2013; Mark Bennet, 2021</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org4105457" class="outline-3">
+<h3 id="org4105457"><span class="section-number-3">1.2</span> Goal for today</h3>
+<div class="outline-text-3" id="text-1-2">
+<ul class="org-ul">
+<li>Allow objects in Javascript and Ruby to handle complex
+messages/method calls to them that might not be defined.</li>
+<li>Learn about Proxy in Javascript</li>
+<li>Learn about method<sub>missing</sub> in Ruby</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org7c4ee40" class="outline-3">
+<h3 id="org7c4ee40"><span class="section-number-3">1.3</span> Concepts</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+Javascript and Ruby are both OO dynamically typed languages. They
+have many similarities and differences.
+</p>
+
+<ul class="org-ul">
+<li>Object: an object has attributes or properties, it can
+handle method calls or messages sent to it. It often inherits
+methods from a class. Objects know themselves and have identity.
+<ul class="org-ul">
+<li>Objects represent things and individuals.</li>
+<li>Objects often have a class.</li>
+</ul></li>
+<li>Class: the structure (methods/messages and attributes/properties)
+that acts as factory for objects.
+<ul class="org-ul">
+<li>Classes create objects.</li>
+</ul></li>
+<li>Instance: an object made from a class.</li>
+<li>Attribute/Property/Instance Variables: a value or variable
+associated with an object, encapsulated by the object.</li>
+<li>Method: code that is bound to an object that runs in the
+context of the object, accessing its attributes/properties.</li>
+<li>Method Call / Message: a function called within the context of an
+object, that has access to the object and its attributes.</li>
+<li>Delegate: an object you delegate to, an object your object has,
+and defers operations to (methods or messages or methods to).</li>
+<li>to proxy/Decorate/Wrap/Adapt: programmer slang for 
+receiving messages, doing a little more work, and then passing
+off reponsibility to another object or function or method.
+<ul class="org-ul">
+<li>before methods</li>
+<li>after methods</li>
+<li>filters</li>
+<li>Decorators, Adapters, Wrappers are the objects/classes who do
+this stuff.</li>
+</ul></li>
+<li>Reflection: allowing an object system to ask questions about its
+objects. 
+<ul class="org-ul">
+<li>What class are you representing?</li>
+<li>Do you have a constructor?</li>
+<li>Can I get a new instance?</li>
+<li>What properties/attributes do you have.</li>
+</ul></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org047e930" class="outline-3">
+<h3 id="org047e930"><span class="section-number-3">1.4</span> Proxy in Javascript&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+Javascript allows some metaprogramming through Reflect and Proxy.
+Proxy allows intercepting and wrapping of method calls.
+</p>
+
+<p>
+Good documentation on Proxy is found here:
+<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy">https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy</a>
+</p>
+
+<p>
+The actual specification of Proxy is found here:
+<a href="https://tc39.es/ecma262/#sec-proxy-objects">https://tc39.es/ecma262/#sec-proxy-objects</a>
+</p>
+
+<p>
+Many things you want to do with proxy will require reflection. The
+Reflect object is described in the spec here:
+<a href="https://tc39.es/ecma262/#sec-reflect-object">https://tc39.es/ecma262/#sec-reflect-object</a>
+</p>
+
+<p>
+The Proxy wraps or decorates another object and intercepts calls to
+it. You can intercept property accesses, you can intercept property
+gets, set, deletions, definitions. You can even intercept playing with
+prototypes. You can override `has`.
+</p>
+
+<p>
+Came late because Javascript was already prototype driven.
+</p>
+</div>
+
+<div id="outline-container-org08edeb7" class="outline-4">
+<h4 id="org08edeb7"><span class="section-number-4">1.4.1</span> The proxy handler is poorly documented.&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></h4>
+<div class="outline-text-4" id="text-1-4-1">
+<p>
+I found most documentation within the spec itself and it was put in
+different sections and quite confusing.
+</p>
+
+<p>
+Handler is an object with methods that the proxy will call. You can
+use an kind of object to be the handler. If the handler is undefined,
+the default action will happen.
+</p>
+
+<p>
+<a href="https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots">https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots</a>
+</p>
+
+<ul class="org-ul">
+<li>get</li>
+<li>set</li>
+<li>has</li>
+<li>deleteProperty</li>
+<li>defineProperty</li>
+<li>getOwnPropertyDescriptor</li>
+<li>preventExtensions</li>
+<li>isExtensible</li>
+<li>getPrototypeOf</li>
+<li>setPrototypeOf</li>
+<li>ownKeys</li>
+<li>apply</li>
+<li>construct</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgf99df78" class="outline-4">
+<h4 id="orgf99df78"><span class="section-number-4">1.4.2</span> Example intercept `get`&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></h4>
+<div class="outline-text-4" id="text-1-4-2">
+<p>
+We're going to intercept the access of properties in Javascript.
+</p>
+
+<p>
+First we need a function to handle the access `handlerGet`. Then we
+need to make a structure (called the Handler) that is an object with a
+method that addresses the operation we are wrapping. In this case the
+operation is `get`.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">function</span> <span style="color: #0000ff;">handlerGet</span>(<span style="color: #a0522d;">target</span>, <span style="color: #a0522d;">prop</span>, <span style="color: #a0522d;">receiver</span>) {
+  <span style="color: #a020f0;">if</span> (prop <span style="color: #a020f0;">in</span> target) {
+    <span style="color: #a020f0;">return</span> target[prop];
+  } <span style="color: #a020f0;">else</span> {
+    <span style="color: #a020f0;">return</span> <span style="color: #8b2252;">`Prop: ${prop} not found`</span>;
+  }
+}
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeHandler</span>() {
+        <span style="color: #a020f0;">return</span> {
+                get: handlerGet
+        }
+}
+<span style="color: #a020f0;">var</span> <span style="color: #a0522d;">obj</span> = {};
+<span style="color: #a020f0;">var</span> <span style="color: #a0522d;">po</span> = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Proxy</span>(obj,makeHandler());
+po.fruit = <span style="color: #8b2252;">"durian"</span>;
+console.log(<span style="color: #8b2252;">"po.fruit:\t"</span>,po.fruit);
+console.log(<span style="color: #8b2252;">"po.salad:\t"</span>,po.salad);
+console.log(<span style="color: #8b2252;">"obj.salad\t"</span>,obj.salad);
+</pre>
+</div>
+
+<pre class="example">
+po.fruit:	 durian
+po.salad:	 Prop: salad not found
+obj.salad	 undefined
+undefined
+</pre>
+
+
+<p>
+Let's be honest, why are you returning a string on a miss?
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf9246bd" class="outline-4">
+<h4 id="orgf9246bd"><span class="section-number-4">1.4.3</span> Default Return Value&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></h4>
+<div class="outline-text-4" id="text-1-4-3">
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeHandler</span>( <span style="color: #a0522d;">defaultValue</span> = <span style="color: #008b8b;">false</span> ) {
+  <span style="color: #a020f0;">return</span> {
+    <span style="color: #0000ff;">get</span>: <span style="color: #a020f0;">function</span>(<span style="color: #a0522d;">target</span>, <span style="color: #a0522d;">prop</span>, <span style="color: #a0522d;">receiver</span>) {
+      <span style="color: #a020f0;">if</span> (prop <span style="color: #a020f0;">in</span> target) {
+        <span style="color: #a020f0;">return</span> target[prop]; <span style="color: #b22222;">//</span><span style="color: #b22222;">Reflect.get(...arguments);</span>
+      } <span style="color: #a020f0;">else</span> {
+        <span style="color: #a020f0;">return</span> defaultValue;
+      }
+    }
+  }
+}
+<span style="color: #a020f0;">var</span> <span style="color: #a0522d;">obj</span> = {};
+<span style="color: #a020f0;">var</span> <span style="color: #a0522d;">po</span> = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Proxy</span>(obj,makeHandler());
+po.fruit = <span style="color: #8b2252;">"durian"</span>;
+console.log(<span style="color: #8b2252;">"po.fruit:\t"</span>, po.fruit);
+console.log(<span style="color: #8b2252;">"po.salad:\t"</span>, po.salad);
+console.log(<span style="color: #8b2252;">"obj.salad:\t"</span>,obj.salad);
+</pre>
+</div>
+
+<pre class="example">
+po.fruit:	 durian
+po.salad:	 false
+obj.salad:	 undefined
+undefined
+</pre>
+</div>
+</div>
+
+<div id="outline-container-orgbb03a99" class="outline-4">
+<h4 id="orgbb03a99"><span class="section-number-4">1.4.4</span> Proxy Summary</h4>
+<div class="outline-text-4" id="text-1-4-4">
+<p>
+You can use Proxy in Javascript to decorate other objects in order to intercept calls.
+</p>
+
+<p>
+You NEED to wrap those objects with Proxy for it to work.
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org077aba4" class="outline-3">
+<h3 id="org077aba4"><span class="section-number-3">1.5</span> Ruby Method Missing&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span></h3>
+<div class="outline-text-3" id="text-1-5">
+<p>
+Ruby's method is to allow any object to respond to messages to itself
+via method<sub>missing</sub>.
+</p>
+
+<p>
+When you call a method, if the method does not exist in the current
+object's class or it's superclasses then `method<sub>missing</sub>` is called and
+handled by the lowest level class to handle it.
+</p>
+
+<p>
+The block, the method arguments and the method's name (`method<sub>name</sub>`)
+(as a symbol) will be passed to the method method<sub>missing</sub>.
+</p>
+
+<p>
+This is not a decorator, this is a method that is called on the object
+when is there is no method to be called for `method<sub>name</sub>`
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">def</span> <span style="color: #0000ff;">method_missing</span>(method_name, *method_arguments, &amp;block)
+  <span style="color: #008b8b;">nil</span>
+<span style="color: #a020f0;">end</span>
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org769b9db" class="outline-4">
+<h4 id="org769b9db"><span class="section-number-4">1.5.1</span> Example of method missing responding to missing methods&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span></h4>
+<div class="outline-text-4" id="text-1-5-1">
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">class</span> <span style="color: #228b22;">Example</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">initialize</span>()
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">method_missing</span>(m, *args, &amp;block)
+    <span style="color: #a0522d;">@last_call</span> = [<span style="color: #008b8b;">:method_missing</span>, m, *args, block]
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+example = <span style="color: #228b22;">Example</span>.new()
+lc1 = example.eat(<span style="color: #8b2252;">"Pie"</span>)
+lc2 = example.block(<span style="color: #008b8b;">:Arg1</span>) { |x|  x }
+{<span style="color: #008b8b;">:lc1</span>=&gt;lc1,<span style="color: #008b8b;">:lc2</span>=&gt;lc2}
+</pre>
+</div>
+
+<pre class="example">
+{:lc1=&gt;[:method_missing, :eat, "Pie", nil], :lc2=&gt;[:method_missing, :block, :Arg1, #&lt;Proc:0x000055e466a32208 (irb):110&gt;]}
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org929347e" class="outline-4">
+<h4 id="org929347e"><span class="section-number-4">1.5.2</span> Delegation is easy&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span></h4>
+<div class="outline-text-4" id="text-1-5-2">
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #228b22;">Object</span>.send(<span style="color: #008b8b;">:remove_const</span>,<span style="color: #008b8b;">:Dog</span>) <span style="color: #b22222;"># </span><span style="color: #b22222;">Make sure there's no Dog class</span>
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Dog</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">initialize</span>()
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">speak</span>()
+    <span style="color: #8b2252;">"Ruff"</span>
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">legs</span>()
+    4
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+</pre>
+</div>
+
+<pre class="example">
+:legs
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #228b22;">Object</span>.send(<span style="color: #008b8b;">:remove_const</span>,<span style="color: #008b8b;">:Cat</span>) <span style="color: #b22222;"># </span><span style="color: #b22222;">Make sure there's no Cat class</span>
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">Cat</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">initialize</span>()
+    <span style="color: #a0522d;">@delegate</span> = <span style="color: #228b22;">Dog</span>.new()
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">method_missing</span>(m, *args, &amp;block)
+    <span style="color: #a0522d;">@delegate</span>.send(m, *args, &amp;block)
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+</pre>
+</div>
+
+<pre class="example">
+:method_missing
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-ruby">cat = <span style="color: #228b22;">Cat</span>.new()
+cat.speak()
+</pre>
+</div>
+
+<pre class="example">
+Ruff
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">class</span> <span style="color: #228b22;">Cat</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">speak</span>
+     <span style="color: #8b2252;">"meow"</span>
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+cat = <span style="color: #228b22;">Cat</span>.new()
+[cat.speak(), cat.legs()]
+</pre>
+</div>
+
+<pre class="example">
+["meow", 4]
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-ruby">cat = <span style="color: #228b22;">Cat</span>.new()
+cat.consume_the_sun()
+</pre>
+</div>
+
+<pre class="example">
+#&lt;NoMethodError: undefined method `consume_the_sun' for #&lt;Dog:0x000055e466a69550&gt;&gt;
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org031224f" class="outline-3">
+<h3 id="org031224f"><span class="section-number-3">1.6</span> Examples</h3>
+<div class="outline-text-3" id="text-1-6">
+</div>
+<div id="outline-container-org0fcf685" class="outline-4">
+<h4 id="org0fcf685"><span class="section-number-4">1.6.1</span> Autovivify&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span></h4>
+<div class="outline-text-4" id="text-1-6-1">
+<p>
+Autovivify means to auto-enliven something (this is from perl). So
+make something exist by checking in on it.
+</p>
+
+<p>
+In perl if you access chains of objects it can create objects along the way.
+</p>
+</div>
+
+<ol class="org-ol">
+<li><a id="orgae1bc65"></a>Autovivify&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span><br />
+<div class="outline-text-5" id="text-1-6-1-1">
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeHandler</span>( <span style="color: #a0522d;">defaultValue</span> = <span style="color: #008b8b;">false</span> ) {
+  <span style="color: #a020f0;">return</span> {
+    <span style="color: #0000ff;">get</span>: <span style="color: #a020f0;">function</span>(<span style="color: #a0522d;">target</span>, <span style="color: #a0522d;">prop</span>, <span style="color: #a0522d;">receiver</span>) {
+      <span style="color: #a020f0;">if</span> (!(prop <span style="color: #a020f0;">in</span> target)) {
+        target[prop] = defaultValue;
+      }
+      <span style="color: #a020f0;">return</span> target[prop]; <span style="color: #b22222;">//</span><span style="color: #b22222;">Reflect.get(...arguments);</span>
+
+    }
+  }
+}
+obj = {};
+po = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Proxy</span>(obj,makeHandler());
+po.fruit = <span style="color: #8b2252;">"durian"</span>;
+console.log(<span style="color: #8b2252;">"Fruit:\t"</span>,po.fruit);
+console.log(<span style="color: #8b2252;">"Salad:\t"</span>,po.salad);
+console.log(<span style="color: #8b2252;">"obj.salad\t"</span>,obj.salad);
+</pre>
+</div>
+
+<pre class="example">
+Fruit:	 durian
+Salad:	 false
+obj.salad	 false
+undefined
+</pre>
+</div>
+</li>
+
+<li><a id="orgeaf2654"></a>Autovivify&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span><br />
+<div class="outline-text-5" id="text-1-6-1-2">
+<p>
+Ruby's instance variables are not available unless exposed with
+getters or setters.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">class</span> <span style="color: #228b22;">Viva</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">initialize</span>(default)
+    <span style="color: #a0522d;">@default</span> = default
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">write_to_instance</span>(m,*args)
+    instance_name = (<span style="color: #8b2252;">"@"</span>+m.to_s)[0..-2] <span style="color: #b22222;"># </span><span style="color: #b22222;">get rid of =</span>
+    instance_variable_set(instance_name, args[0])  
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">read_from_instance</span>(m)
+    instance_name = <span style="color: #8b2252;">"@"</span>+m.to_s
+    <span style="color: #a020f0;">if</span> <span style="color: #a020f0;">not</span> instance_variable_defined?(instance_name)
+      instance_variable_set(instance_name, <span style="color: #a0522d;">@default</span>)
+    <span style="color: #a020f0;">end</span>
+    <span style="color: #a020f0;">return</span> instance_variable_get(instance_name)
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">method_missing</span>(m, *args, &amp;block)
+    ms = m.to_s
+    <span style="color: #a020f0;">if</span> ms[-1] == <span style="color: #8b2252;">"="</span>
+      <span style="color: #a020f0;">self</span>.write_to_instance(m,*args)
+    <span style="color: #a020f0;">else</span>
+      <span style="color: #a020f0;">self</span>.read_from_instance(m)
+    <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+v = <span style="color: #228b22;">Viva</span>.new(<span style="color: #008b8b;">:undefined</span>)
+<span style="color: #b22222;"># </span><span style="color: #b22222;">this actually calls v.c=("x")</span>
+v.c = <span style="color: #8b2252;">"x"</span>
+[v.a, v.b, v.c, v.inspect]
+</pre>
+</div>
+
+<pre class="example">
+[:undefined, :undefined, "x", "#&lt;Viva:0x000055e466a253a0 @default=:undefined, @c=\"x\", @a=:undefined, @b=:undefined&gt;"]
+</pre>
+</div>
+</li>
+</ol>
+</div>
+
+
+<div id="outline-container-org9d49e8d" class="outline-4">
+<h4 id="org9d49e8d"><span class="section-number-4">1.6.2</span> Autovivify Perl Style</h4>
+<div class="outline-text-4" id="text-1-6-2">
+<p>
+In perl if you access chains of objects it can create objects along
+the way.
+</p>
+
+<p>
+`$a = {}; $a-&gt;{b}-&gt;{c}` would cause `$a == {"b"=&gt;{}}` to be made.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-perl"><span style="color: #a020f0;">use</span> <span style="color: #008b8b;">Data</span>::Dumper;
+<span style="color: #228b22;">my</span> $<span style="color: #a0522d;">a</span> = {};
+$<span style="color: #a0522d;">a</span>-&gt;{b}-&gt;{c};
+$<span style="color: #a0522d;">abefore</span> = Dumper($<span style="color: #a0522d;">a</span>);
+$<span style="color: #a0522d;">a</span>-&gt;{b}-&gt;{c} = 1;
+$<span style="color: #a0522d;">aafter</span> = Dumper($<span style="color: #a0522d;">a</span>);
+[$<span style="color: #a0522d;">abefore</span>,$<span style="color: #a0522d;">aafter</span>]
+</pre>
+</div>
+
+<pre class="example">
+$VAR1 = {
+          'b' =&gt; {}
+        };
+
+$VAR1 = {
+          'b' =&gt; {
+                   'c' =&gt; 1
+                 }
+        };
+
+</pre>
+</div>
+
+<ol class="org-ol">
+<li><a id="org72982ce"></a>Autovivify Perl Style with Javascript&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span><br />
+<div class="outline-text-5" id="text-1-6-2-1">
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeVivifyHandler</span>() {
+  <span style="color: #a020f0;">return</span> {
+    <span style="color: #0000ff;">get</span>: <span style="color: #a020f0;">function</span>(<span style="color: #a0522d;">target</span>, <span style="color: #a0522d;">prop</span>, <span style="color: #a0522d;">receiver</span>) {
+      <span style="color: #a020f0;">if</span> (!(prop <span style="color: #a020f0;">in</span> target)) {
+        target[prop] = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Proxy</span>({},makeVivifyHandler());
+      }
+      <span style="color: #a020f0;">return</span> target[prop]; <span style="color: #b22222;">//</span><span style="color: #b22222;">Reflect.get(...arguments);</span>
+    }
+  }
+}
+<span style="color: #a020f0;">var</span> <span style="color: #a0522d;">obj</span> = {};
+<span style="color: #a020f0;">var</span> <span style="color: #a0522d;">po</span> = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Proxy</span>(obj,makeVivifyHandler());
+po.fruit = <span style="color: #8b2252;">"durian"</span>;
+console.log(<span style="color: #8b2252;">"Fruit:\t"</span>,po.fruit);
+console.log(<span style="color: #8b2252;">"Salad:\t"</span>,po.salad);
+console.log(<span style="color: #8b2252;">"obj.salad\t"</span>,obj.salad);
+console.log(<span style="color: #8b2252;">"obj\t"</span>,obj);
+console.log(<span style="color: #8b2252;">"obj.salad.what\t"</span>,obj.salad.what);
+console.log(<span style="color: #8b2252;">"obj\t"</span>,obj);
+console.log(<span style="color: #8b2252;">"po.salad.what\t"</span>,po.salad.what);
+console.log(<span style="color: #8b2252;">"obj\t"</span>,obj);
+console.log(<span style="color: #8b2252;">"po.salad.what.huh.zuh\t"</span>, po.salad.what.huh.zuh);
+console.log(<span style="color: #8b2252;">"obj\t"</span>,obj);
+console.log(<span style="color: #8b2252;">"salad"</span> <span style="color: #a020f0;">in</span> po);
+console.log(<span style="color: #8b2252;">"dessert"</span> <span style="color: #a020f0;">in</span> po);
+</pre>
+</div>
+
+<pre class="example">
+Fruit:	 durian
+Salad:	 {}
+obj.salad	 {}
+obj	 { fruit: 'durian', salad: {} }
+obj.salad.what	 {}
+obj	 { fruit: 'durian', salad: { what: {} } }
+po.salad.what	 {}
+obj	 { fruit: 'durian', salad: { what: {} } }
+po.salad.what.huh.zuh	 {}
+obj	 { fruit: 'durian', salad: { what: { huh: [Object] } } }
+true
+false
+undefined
+</pre>
+</div>
+</li>
+
+<li><a id="orgd321973"></a>Autovivify Perl Style with Ruby&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span><br />
+<div class="outline-text-5" id="text-1-6-2-2">
+<p>
+I copied and pasted Viva, changed its name to AutoViva, removed its
+default parameter and just had it create itself instead.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">class</span> <span style="color: #228b22;">AutoViva</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">initialize</span>()
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">write_to_instance</span>(m,*args)
+    instance_name = (<span style="color: #8b2252;">"@"</span>+m.to_s)[0..-2] <span style="color: #b22222;"># </span><span style="color: #b22222;">get rid of =</span>
+    instance_variable_set(instance_name, args[0])  
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">read_from_instance</span>(m)
+    instance_name = <span style="color: #8b2252;">"@"</span>+m.to_s
+    <span style="color: #a020f0;">if</span> <span style="color: #a020f0;">not</span> instance_variable_defined?(instance_name)
+      instance_variable_set(instance_name, <span style="color: #228b22;">AutoViva</span>.new())
+    <span style="color: #a020f0;">end</span>
+    <span style="color: #a020f0;">return</span> instance_variable_get(instance_name)
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">method_missing</span>(m, *args, &amp;block)
+    ms = m.to_s
+    <span style="color: #a020f0;">if</span> ms[-1] == <span style="color: #8b2252;">"="</span>
+      <span style="color: #a020f0;">self</span>.write_to_instance(m,*args)
+    <span style="color: #a020f0;">else</span>
+      <span style="color: #a020f0;">self</span>.read_from_instance(m)
+    <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+v = <span style="color: #228b22;">AutoViva</span>.new()
+<span style="color: #b22222;"># </span><span style="color: #b22222;">this actually calls v.c=("x")</span>
+v.c = <span style="color: #8b2252;">"x"</span>
+v.a.b.c.d
+v.a.b.c.e = <span style="color: #008b8b;">:liskovviolation</span>
+v2 = <span style="color: #228b22;">AutoViva</span>.new()
+v2.a = <span style="color: #008b8b;">:instance</span>
+[v2.inspect, v.inspect]
+</pre>
+</div>
+
+<pre class="example">
+["#&lt;AutoViva:0x000055e4666d6b18 @a=:instance&gt;", "#&lt;AutoViva:0x000055e466563ce0 @c=\"x\", @a=#&lt;AutoViva:0x000055e466737b70 @b=#&lt;AutoViva:0x000055e4667365e0 @c=#&lt;AutoViva:0x000055e4667362e8 @d=#&lt;AutoViva:0x000055e466735fa0&gt;, @e=:liskovviolation&gt;&gt;&gt;&gt;"]
+</pre>
+</div>
+</li>
+</ol>
+</div>
+
+
+<div id="outline-container-orgccd4ce4" class="outline-4">
+<h4 id="orgccd4ce4"><span class="section-number-4">1.6.3</span> Multimethods</h4>
+<div class="outline-text-4" id="text-1-6-3">
+<p>
+Multimethods inspect the arguments and delegate based on them.
+</p>
+</div>
+
+<ol class="org-ol">
+<li><a id="orga955bfe"></a>Multimethods Javascript&#xa0;&#xa0;&#xa0;<span class="tag"><span class="js">js</span></span><br />
+<div class="outline-text-5" id="text-1-6-3-1">
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">class</span> Example {
+    a$number$number(x,y) {
+        <span style="color: #a020f0;">return</span> x + y
+    }
+    a$string$number(s,n) {
+        <span style="color: #a020f0;">return</span> [...Array(n)].map(() =&gt; s).join(<span style="color: #8b2252;">""</span>)
+    }
+}
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeSimpleMultiMethod</span>(<span style="color: #a0522d;">prefix</span>) {
+    <span style="color: #a020f0;">return</span> <span style="color: #a020f0;">function</span>() {
+                <span style="color: #a020f0;">let</span> <span style="color: #a0522d;">sig</span> = prefix + <span style="color: #8b2252;">"$"</span> + [...<span style="color: #008b8b;">arguments</span>].map(x =&gt; <span style="color: #a020f0;">typeof</span>(x)).join(<span style="color: #8b2252;">"$"</span>);
+        <span style="color: #a020f0;">if</span> (sig <span style="color: #a020f0;">in</span> <span style="color: #008b8b;">this</span>) {
+            <span style="color: #a020f0;">return</span> <span style="color: #008b8b;">this</span>[sig](...<span style="color: #008b8b;">arguments</span>);
+        } <span style="color: #a020f0;">else</span> {
+            <span style="color: #a020f0;">throw</span> (sig + <span style="color: #8b2252;">' not in '</span> + <span style="color: #008b8b;">this</span>)
+        }
+    }
+}
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">handlerGet</span>(<span style="color: #a0522d;">target</span>, <span style="color: #a0522d;">prop</span>, <span style="color: #a0522d;">receiver</span>) {
+    props = prop.toString();
+    <span style="color: #a020f0;">if</span> (props <span style="color: #a020f0;">in</span> target) {
+        <span style="color: #a020f0;">return</span> Reflect.get(target,prop,receiver);
+    }
+    target[props] = makeSimpleMultiMethod(prop);
+    <span style="color: #a020f0;">return</span> Reflect.get(target, prop, receiver);
+}
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeHandler</span>() {
+    <span style="color: #a020f0;">return</span> {
+        get: handlerGet
+    }
+}
+<span style="color: #b22222;">// </span><span style="color: #b22222;">We can wrap it with proxy</span>
+pe = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Proxy</span>(<span style="color: #a020f0;">new</span> <span style="color: #228b22;">Example</span>(),makeHandler());
+console.log( <span style="color: #8b2252;">"pe.a(1,2)    "</span>     ,       pe.a(1,2)    );
+console.log( <span style="color: #8b2252;">"pe.a(\"x\",5)  "</span>   ,       pe.a(<span style="color: #8b2252;">"x"</span>,5)  );
+<span style="color: #a020f0;">try</span> {
+    console.log( <span style="color: #8b2252;">"pe.a(\"x\",\"x\")"</span> ,       pe.a(<span style="color: #8b2252;">"x"</span>,<span style="color: #8b2252;">"x"</span>));
+} <span style="color: #a020f0;">catch</span> (err) {
+    console.log(<span style="color: #8b2252;">"Error "</span>+err);
+}
+</pre>
+</div>
+
+<pre class="example">
+pe.a(1,2)     3
+pe.a("x",5)   xxxxx
+Error a$string$string not in [object Object]
+undefined
+</pre>
+</div>
+</li>
+
+
+<li><a id="orgbdf5c50"></a>But we don't actually need proxy to do this!<br />
+<div class="outline-text-5" id="text-1-6-3-2">
+<p>
+Since we can make a multimethod on the fly, we can also just make
+multimethods intentionally.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">class</span> Example {
+    a$number$number(x,y) {
+        <span style="color: #a020f0;">return</span> x + y
+    }
+    a$string$number(s,n) {
+        <span style="color: #a020f0;">return</span> [...Array(n)].map(() =&gt; s).join(<span style="color: #8b2252;">""</span>)
+    }
+}
+<span style="color: #a020f0;">function</span> <span style="color: #0000ff;">makeSimpleMultiMethod</span>(<span style="color: #a0522d;">prefix</span>) {
+    <span style="color: #a020f0;">return</span> <span style="color: #a020f0;">function</span>() {
+                <span style="color: #a020f0;">let</span> <span style="color: #a0522d;">sig</span> = prefix + <span style="color: #8b2252;">"$"</span> + [...<span style="color: #008b8b;">arguments</span>].map(x =&gt; <span style="color: #a020f0;">typeof</span>(x)).join(<span style="color: #8b2252;">"$"</span>);
+        <span style="color: #a020f0;">if</span> (sig <span style="color: #a020f0;">in</span> <span style="color: #008b8b;">this</span>) {
+            <span style="color: #a020f0;">return</span> <span style="color: #008b8b;">this</span>[sig](...<span style="color: #008b8b;">arguments</span>);
+        } <span style="color: #a020f0;">else</span> {
+            <span style="color: #a020f0;">throw</span> (sig + <span style="color: #8b2252;">' not in '</span> + <span style="color: #008b8b;">this</span>)
+        }
+    }
+}
+
+<span style="color: #b22222;">// </span><span style="color: #b22222;">We can forget proxy and just make the method a multi method by default</span>
+Example.<span style="color: #008b8b;">prototype</span>.a = makeSimpleMultiMethod(<span style="color: #8b2252;">"a"</span>);
+
+e = <span style="color: #a020f0;">new</span> <span style="color: #228b22;">Example</span>();
+console.log( <span style="color: #8b2252;">"e.a(1,2)    "</span>     ,       e.a(1,2)    );
+console.log( <span style="color: #8b2252;">"e.a(\"x\",5)  "</span>   ,       e.a(<span style="color: #8b2252;">"x"</span>,5)  );
+<span style="color: #a020f0;">try</span> {
+    console.log( <span style="color: #8b2252;">"e.a(\"x\",\"x\")"</span> ,       e.a(<span style="color: #8b2252;">"x"</span>,<span style="color: #8b2252;">"x"</span>));
+} <span style="color: #a020f0;">catch</span> (err) {
+    console.log(<span style="color: #8b2252;">"Error "</span>+err);
+}
+</pre>
+</div>
+
+<pre class="example">
+e.a(1,2)     3
+e.a("x",5)   xxxxx
+Error a$string$string not in [object Object]
+undefined
+</pre>
+</div>
+</li>
+
+
+<li><a id="org2a9c690"></a>Multimethods Ruby&#xa0;&#xa0;&#xa0;<span class="tag"><span class="ruby">ruby</span></span><br />
+<div class="outline-text-5" id="text-1-6-3-3">
+<p>
+For ruby we're going to make a utility method that inspects an object
+and suggests a method to call instead.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ruby">
+<span style="color: #a020f0;">def</span> <span style="color: #0000ff;">resolve_simple_multi_method</span>(obj,method,args)
+  sig = (method.to_s + <span style="color: #8b2252;">"__"</span> + args.map {|x| x.class.to_s }.join(<span style="color: #8b2252;">"__"</span>)).to_sym
+  <span style="color: #a020f0;">if</span> obj.methods.include? sig
+    <span style="color: #a020f0;">return</span> sig
+  <span style="color: #a020f0;">else</span>
+    <span style="color: #483d8b;">raise</span> (sig.to_s + <span style="color: #8b2252;">" not found"</span>)
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+
+<span style="color: #a020f0;">class</span> <span style="color: #228b22;">MMExample</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">a__Integer__Integer</span>(x,y)
+    x + y
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">a__String__Integer</span>(s,n)
+    s * n
+  <span style="color: #a020f0;">end</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">method_missing</span>(method_name, *method_arguments, &amp;block)
+    new_method = resolve_simple_multi_method(<span style="color: #a020f0;">self</span>, method_name, method_arguments)
+    <span style="color: #a020f0;">self</span>.send( new_method, *method_arguments, &amp;block)
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+
+mme = <span style="color: #228b22;">MMExample</span>.new
+[mme.a(1,2), mme.a(<span style="color: #8b2252;">"x"</span>,7)]
+</pre>
+</div>
+
+<pre class="example">
+[3, "xxxxxxx"]
+</pre>
+
+
+<p>
+What about something now yet defined?
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ruby">mme.a(<span style="color: #8b2252;">"x"</span>,<span style="color: #8b2252;">"x"</span>)
+</pre>
+</div>
+
+<pre class="example">
+#&lt;RuntimeError: a__String__String not found&gt;
+</pre>
+
+
+<p>
+And being ruby we can open it for extension any time.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">class</span> <span style="color: #228b22;">MMExample</span>
+  <span style="color: #a020f0;">def</span> <span style="color: #0000ff;">a__Integer__Integer__Integer</span>(x,y,z)
+    x ** y ** z
+  <span style="color: #a020f0;">end</span>
+<span style="color: #a020f0;">end</span>
+
+mme.a(2,2,5)
+</pre>
+</div>
+
+<pre class="example">
+4294967296
+</pre>
+
+
+<p>
+Of course there are many multidispatch and multimethod gems for ruby.
+It's just good to understand how they would work
+</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+
+<div id="outline-container-org556bd29" class="outline-3">
+<h3 id="org556bd29"><span class="section-number-3">1.7</span> Dangers of meta-programming</h3>
+<div class="outline-text-3" id="text-1-7">
+<ul class="org-ul">
+<li>It's confusing</li>
+<li>You can't grep for function definitions</li>
+<li>It surprises people</li>
+<li>You need a running system to test semantics :(</li>
+<li>Often you need to use a debugger or debugger tools to figure out what is being called.
+<ul class="org-ul">
+<li>You can always throw an exception and/or force a backtrace.
+<ul class="org-ul">
+<li>`console.trace()` :js:</li>
+<li>`exception.backtrace` :rb:</li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgea4b1c0" class="outline-3">
+<h3 id="orgea4b1c0"><span class="section-number-3">1.8</span> Conclusion</h3>
+<div class="outline-text-3" id="text-1-8">
+<ul class="org-ul">
+<li>Reflect and Proxy are your buddies for Metaprogramming in Javascript</li>
+<li>Method Missing, and Object are your buddies for Metaprogramming in Ruby</li>
+<li>Reflection and message passing all for powerful constructs that
+will confuse just about anyone reading your code.</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org7de586f" class="outline-3">
+<h3 id="org7de586f"><span class="section-number-3">1.9</span> Copyright Statement</h3>
+<div class="outline-text-3" id="text-1-9">
+<p>
+Code is (c) 2021 Abram Hindle. 
+</p>
+
+<p>
+Unless stated otherwise, assume Python license, or Ruby license
+depending on the example.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-orgcaec8cf" class="outline-3">
+<h3 id="orgcaec8cf"><span class="section-number-3">1.10</span> Init ORG-MODE</h3>
+<div class="outline-text-3" id="text-1-10">
+<p>
+I use this section to ensure I can run the examples. You might not
+need this, but I eval the following elisp before I start the
+presentation
+</p>
+
+<div class="org-src-container">
+<pre class="src src-elisp"><span style="color: #b22222;">;; </span><span style="color: #b22222;">I need this for org-mode to work well</span>
+<span style="color: #b22222;">;; </span><span style="color: #b22222;">If we have a new org-mode use ob-shell</span>
+<span style="color: #b22222;">;; </span><span style="color: #b22222;">otherwise use ob-sh --- but not both!</span>
+<span style="color: #b22222;">;;</span><span style="color: #b22222;">(require 'ob-ruby)</span>
+<span style="color: #b22222;">;;</span><span style="color: #b22222;">(require 'inf-ruby)</span>
+<span style="color: #b22222;">;;</span><span style="color: #b22222;">(require 'enh-ruby-mode)</span>
+
+(<span style="color: #a020f0;">if</span> (<span style="color: #a020f0;">require</span> '<span style="color: #008b8b;">ob-shell</span> nil 'noerror)
+  (<span style="color: #a020f0;">progn</span>
+    (org-babel-do-load-languages 'org-babel-load-languages '((shell . t))))
+  (<span style="color: #a020f0;">progn</span>
+    (<span style="color: #a020f0;">require</span> '<span style="color: #008b8b;">ob-sh</span>)
+    (org-babel-do-load-languages 'org-babel-load-languages '((sh . t)))))
+(org-babel-do-load-languages 'org-babel-load-languages '((C . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((js . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((perl . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((python . t)))
+(<span style="color: #a020f0;">setq</span> org-babel-js-function-wrapper
+      <span style="color: #8b2252;">"process.stdout.write(require('util').inspect(function(){\n%s\n}(), { maxArrayLength: null, maxStringLength: null, breakLength: Infinity, compact: true }))"</span>)
+(<span style="color: #a020f0;">setq</span> org-src-fontify-natively t)
+(<span style="color: #a020f0;">setq</span> org-confirm-babel-evaluate nil) <span style="color: #b22222;">;; </span><span style="color: #b22222;">danger!</span>
+(custom-set-faces
+ '(org-block ((t (<span style="color: #483d8b;">:inherit</span> shadow <span style="color: #483d8b;">:foreground</span> <span style="color: #8b2252;">"black"</span>))))
+ '(org-code ((t (<span style="color: #483d8b;">:inherit</span> shadow <span style="color: #483d8b;">:foreground</span> <span style="color: #8b2252;">"black"</span>)))))
+<span style="color: #b22222;">;</span><span style="color: #b22222;">(setq inf-ruby-default-implementation "ruby")</span>
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org75b9622" class="outline-4">
+<h4 id="org75b9622"><span class="section-number-4">1.10.1</span> Org export</h4>
+<div class="outline-text-4" id="text-1-10-1">
+<div class="org-src-container">
+<pre class="src src-elisp">(org-html-export-to-html)
+(org-latex-export-to-pdf)
+(org-ascii-export-to-ascii)
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org7820a05" class="outline-4">
+<h4 id="org7820a05"><span class="section-number-4">1.10.2</span> Org Template</h4>
+<div class="outline-text-4" id="text-1-10-2">
+<p>
+Copy and paste this to demo C
+</p>
+
+<div class="org-src-container">
+<pre class="src src-C"><span style="color: #483d8b;">#include</span> <span style="color: #8b2252;">&lt;stdio.h&gt;</span>
+
+<span style="color: #228b22;">int</span> <span style="color: #0000ff;">main</span>(<span style="color: #228b22;">int</span> <span style="color: #a0522d;">argc</span>, <span style="color: #228b22;">char</span>**<span style="color: #a0522d;">argv</span>) {
+    <span style="color: #a020f0;">return</span> 0;
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-js"><span style="color: #a020f0;">var</span> <span style="color: #a0522d;">util</span> = require(<span style="color: #8b2252;">"util"</span>);
+console.log(<span style="color: #8b2252;">"this is a Node.js test program!"</span>);
+console.log(<span style="color: #8b2252;">"this is a Node.js test program! again"</span>);
+</pre>
+</div>
+
+<pre class="example">
+this is a Node.js test program!
+this is a Node.js test program! again
+undefined
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-ruby">[12,<span style="color: #8b2252;">"ruby"</span>]
+</pre>
+</div>
+
+<pre class="example">
+[12, "ruby"]
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-ruby"><span style="color: #a020f0;">class</span> <span style="color: #228b22;">XYZ</span>
+<span style="color: #a020f0;">end</span>
+<span style="color: #228b22;">XYZ</span>.new()
+</pre>
+</div>
+
+<pre class="example">
+#&lt;XYZ:0x000055e466a88e28&gt;
+</pre>
+
+
+<div class="org-src-container">
+<pre class="src src-perl"><span style="color: #a020f0;">use</span> <span style="color: #008b8b;">Data</span>::Dumper;
+$<span style="color: #a0522d;">a</span> = {};
+$<span style="color: #a0522d;">a</span>-&gt;{b}-&gt;{c};
+Dumper($<span style="color: #a0522d;">a</span>);
+</pre>
+</div>
+
+<pre class="example">
+$VAR1 = {
+          'b' =&gt; {}
+        };
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Abram</p>
+<p class="date">Created: 2021-06-03 Thu 16:36</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
