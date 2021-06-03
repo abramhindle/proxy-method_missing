@@ -1,19 +1,25 @@
-#+TITLE: Metaprogramming in JS and Ruby: Javascript Proxy and Ruby Missing Method
+#+TITLE: Metaprogramming in JS and Ruby: Javascript Proxy and Ruby Method Missing
 #+PROPERTY: header-args:C             :exports both :eval yes :flags -std=c99 -pedantic -Wall -Wextra -ftrapv -ggdb3 :eval yes :results value verbatim
 #+PROPERTY: header-args:sh            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:rb            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:ruby            :exports both :eval yes :results value verbatim
+#+PROPERTY: header-args:perl            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:js            :exports both :eval yes :results value verbatim
 #+PROPERTY: header-args:shell         :exports both :eval yes :results value verbatim
 
-* MetaProgramming in JS and Ruby
+* MetaProgramming in JS and Ruby: Javascript `Proxy` and Ruby `method_missing`
 ** Metaprogramming
+   - meta is "referring to itself" or "Self-referential"
+     - thus meta-programming is programming referring to itself.
    - Programming about Programming
    - Treating programs as data to be processed
    - Macros are an example, generate code for code with code.
    - Code that makes code
    - Code that acts like the language would
    - Code about programming
+
+*** To quote Mark 
+    - "CODE IS DATA, DATA IS CODE" -- Mark Bennet, 2021
 
 ** Goal for today
    - Allow objects in Javascript and Ruby to handle complex
@@ -41,11 +47,22 @@
      context of the object, accessing its attributes/properties.
    - Method Call / Message: a function called within the context of an
      object, that has access to the object and its attributes.
-   - Delegate: an object you delegate to, an object your object has
-     and defers operations (methods or messages or methods to)
-   - Proxy/Decorate/Wrap/Adapt: programmer slang for something that
-     receives messages, does a little more work, and then delegates to
-     another object
+   - Delegate: an object you delegate to, an object your object has,
+     and defers operations to (methods or messages or methods to).
+   - to proxy/Decorate/Wrap/Adapt: programmer slang for 
+     receiving messages, doing a little more work, and then passing
+     off reponsibility to another object or function or method.
+     - before methods
+     - after methods
+     - filters
+     - Decorators, Adapters, Wrappers are the objects/classes who do
+       this stuff.
+   - Reflection: allowing an object system to ask questions about its
+     objects. 
+     - What class are you representing?
+     - Do you have a constructor?
+     - Can I get a new instance?
+     - What properties/attributes do you have.
 
 ** Proxy in Javascript :js:
 
@@ -65,7 +82,9 @@ https://tc39.es/ecma262/#sec-reflect-object
 The Proxy wraps or decorates another object and intercepts calls to
 it. You can intercept property accesses, you can intercept property
 gets, set, deletions, definitions. You can even intercept playing with
-prototypes. You can override has.
+prototypes. You can override `has`.
+
+Came late because Javascript was already prototype driven.
 
 *** The proxy handler is poorly documented. :js:
 
@@ -92,7 +111,7 @@ https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots
     - apply
     - construct
 
-*** Example intercept get :js:
+*** Example intercept `get`                                              :js:
 
 We're going to intercept the access of properties in Javascript.
 
@@ -104,12 +123,11 @@ operation is `get`.
 #+BEGIN_SRC js :exports both
 function handlerGet(target, prop, receiver) {
   if (prop in target) {
-    return target[prop]; //Reflect.get(...arguments);
+    return target[prop];
   } else {
     return `Prop: ${prop} not found`;
   }
 }
-
 function makeHandler() {
 	return {
 		get: handlerGet
@@ -118,20 +136,20 @@ function makeHandler() {
 var obj = {};
 var po = new Proxy(obj,makeHandler());
 po.fruit = "durian";
-console.log("Fruit:\t",po.fruit);
-console.log("Salad:\t",po.salad);
+console.log("po.fruit:\t",po.fruit);
+console.log("po.salad:\t",po.salad);
 console.log("obj.salad\t",obj.salad);
 #+END_SRC
 
 #+RESULTS:
-: Fruit:	 durian
-: Salad:	 Prop: salad not found
+: po.fruit:	 durian
+: po.salad:	 Prop: salad not found
 : obj.salad	 undefined
 : undefined
 
 Let's be honest, why are you returning a string on a miss?
 
-*** Default Return Value
+*** Default Return Value :js:
 
 #+BEGIN_SRC js :exports both
 function makeHandler( defaultValue = false ) {
@@ -148,94 +166,16 @@ function makeHandler( defaultValue = false ) {
 var obj = {};
 var po = new Proxy(obj,makeHandler());
 po.fruit = "durian";
-console.log("Fruit:\t",po.fruit);
-console.log("Salad:\t",po.salad);
-console.log("obj.salad\t",obj.salad);
+console.log("po.fruit:\t", po.fruit);
+console.log("po.salad:\t", po.salad);
+console.log("obj.salad:\t",obj.salad);
 #+END_SRC
 
 #+RESULTS:
-: durian
-: false
+: po.fruit:	 durian
+: po.salad:	 false
+: obj.salad:	 undefined
 : undefined
-
-*** Autovivify 
-
-In perl if you access chains of objects it can create objects along the way.
-
-#+BEGIN_SRC js :exports both
-function makeHandler( defaultValue = false ) {
-  return {
-    get: function(target, prop, receiver) {
-      if (!(prop in target)) {
-        target[prop] = defaultValue;
-      }
-      return target[prop]; //Reflect.get(...arguments);
-
-    }
-  }
-}
-obj = {};
-po = new Proxy(obj,makeHandler());
-po.fruit = "durian";
-console.log("Fruit:\t",po.fruit);
-console.log("Salad:\t",po.salad);
-console.log("obj.salad\t",obj.salad);
-#+END_SRC
-
-#+RESULTS:
-: Fruit:	 durian
-: Salad:	 false
-: obj.salad	 false
-: undefined
-
-*** Autovivify Perl Style
-
-In perl if you access chains of objects it can create objects along the way.
-
-#+BEGIN_SRC js :exports both
-function makeVivifyHandler() {
-  return {
-    get: function(target, prop, receiver) {
-      if (!(prop in target)) {
-        target[prop] = new Proxy({},makeVivifyHandler());
-      }
-      return target[prop]; //Reflect.get(...arguments);
-    }
-  }
-}
-var obj = {};
-var po = new Proxy(obj,makeVivifyHandler());
-po.fruit = "durian";
-console.log("Fruit:\t",po.fruit);
-console.log("Salad:\t",po.salad);
-console.log("obj.salad\t",obj.salad);
-console.log("obj\t",obj);
-console.log("obj.salad.what\t",obj.salad.what);
-console.log("obj\t",obj);
-console.log("po.salad.what\t",po.salad.what);
-console.log("obj\t",obj);
-console.log("po.salad.what.huh.zuh\t", po.salad.what.huh.zuh);
-console.log("obj\t",obj);
-console.log("salad" in po);
-console.log("dessert" in po);
-#+END_SRC
-
-#+RESULTS:
-#+begin_example
-Fruit:	 durian
-Salad:	 {}
-obj.salad	 {}
-obj	 { fruit: 'durian', salad: {} }
-obj.salad.what	 {}
-obj	 { fruit: 'durian', salad: { what: {} } }
-po.salad.what	 {}
-obj	 { fruit: 'durian', salad: { what: {} } }
-po.salad.what.huh.zuh	 {}
-obj	 { fruit: 'durian', salad: { what: { huh: [Object] } } }
-true
-false
-undefined
-#+end_example
 
 *** Proxy Summary
 
@@ -244,10 +184,13 @@ You can use Proxy in Javascript to decorate other objects in order to intercept 
 You NEED to wrap those objects with Proxy for it to work.
 
 
-** Ruby Missing Method
+** Ruby Method Missing :ruby:
+
+Ruby's method is to allow any object to respond to messages to itself
+via method_missing.
 
 When you call a method, if the method does not exist in the current
-object's class or it's superclasses then method_missing is called and
+object's class or it's superclasses then `method_missing` is called and
 handled by the lowest level class to handle it.
 
 The block, the method arguments and the method's name (`method_name`)
@@ -262,7 +205,7 @@ when is there is no method to be called for `method_name`
   end
 #+END_SRC
 
-*** Example of method missing responding to missing methods
+*** Example of method missing responding to missing methods :ruby:
 
 #+BEGIN_SRC ruby :exports both :session x
 class Example
@@ -279,9 +222,9 @@ lc2 = example.block(:Arg1) { |x|  x }
 #+END_SRC
 
 #+RESULTS:
-: {:lc1=>[:method_missing, :eat, "Pie", nil], :lc2=>[:method_missing, :block, :Arg1, #<Proc:0x0000563dee559df8 (irb):84>]}
+: {:lc1=>[:method_missing, :eat, "Pie", nil], :lc2=>[:method_missing, :block, :Arg1, #<Proc:0x0000563dee5c3e10 (irb):236>]}
 
-*** Delegation is easy
+*** Delegation is easy :ruby:
 
 #+BEGIN_SRC ruby :exports both :session x
 Object.send(:remove_const,:Dog) # Make sure there's no Dog class
@@ -344,6 +287,212 @@ cat.consume_the_sun()
 #+RESULTS:
 : #<NoMethodError: undefined method `consume_the_sun' for #<Dog:0x0000563dee4f5a88>>
 
+** Examples
+*** Autovivify :js:
+
+Autovivify means to auto-enliven something (this is from perl). So
+make something exist by checking in on it.
+
+In perl if you access chains of objects it can create objects along the way.
+
+**** Autovivify                                                          :js:
+
+#+BEGIN_SRC js :exports both
+function makeHandler( defaultValue = false ) {
+  return {
+    get: function(target, prop, receiver) {
+      if (!(prop in target)) {
+        target[prop] = defaultValue;
+      }
+      return target[prop]; //Reflect.get(...arguments);
+
+    }
+  }
+}
+obj = {};
+po = new Proxy(obj,makeHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+#+END_SRC
+
+#+RESULTS:
+: Fruit:	 durian
+: Salad:	 false
+: obj.salad	 false
+: undefined
+
+**** Autovivify                                                        :ruby:
+
+ Ruby's instance variables are not available unless exposed with
+ getters or setters.
+
+ #+BEGIN_SRC ruby :exports both :session x
+ class Viva
+   def initialize(default)
+     @default = default
+   end
+   def write_to_instance(m,*args)
+     instance_name = ("@"+m.to_s)[0..-2] # get rid of =
+     instance_variable_set(instance_name, args[0])  
+   end
+   def read_from_instance(m)
+     instance_name = "@"+m.to_s
+     if not instance_variable_defined?(instance_name)
+       instance_variable_set(instance_name, @default)
+     end
+     return instance_variable_get(instance_name)
+   end
+   def method_missing(m, *args, &block)
+     ms = m.to_s
+     if ms[-1] == "="
+       self.write_to_instance(m,*args)
+     else
+       self.read_from_instance(m)
+     end
+   end
+ end
+ v = Viva.new(:undefined)
+ # this actually calls v.c=("x")
+ v.c = "x"
+ [v.a, v.b, v.c, v.inspect]
+ #+END_SRC
+
+ #+RESULTS:
+ : [:undefined, :undefined, "x", "#<Viva:0x000055e705250b38 @default=:undefined, @c=\"x\", @a=:undefined, @b=:undefined>"]
+
+
+*** Autovivify Perl Style 
+
+In perl if you access chains of objects it can create objects along
+the way.
+
+`$a = {}; $a->{b}->{c}` would cause `$a == {"b"=>{}}` to be made.
+
+#+BEGIN_SRC perl :export both
+use Data::Dumper;
+my $a = {};
+$a->{b}->{c};
+$abefore = Dumper($a);
+$a->{b}->{c} = 1;
+$aafter = Dumper($a);
+[$abefore,$aafter]
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+$VAR1 = {
+          'b' => {}
+        };
+
+$VAR1 = {
+          'b' => {
+                   'c' => 1
+                 }
+        };
+
+#+end_example
+
+**** Autovivify Perl Style with Javascript                               :js:
+
+#+BEGIN_SRC js :exports both
+function makeVivifyHandler() {
+  return {
+    get: function(target, prop, receiver) {
+      if (!(prop in target)) {
+        target[prop] = new Proxy({},makeVivifyHandler());
+      }
+      return target[prop]; //Reflect.get(...arguments);
+    }
+  }
+}
+var obj = {};
+var po = new Proxy(obj,makeVivifyHandler());
+po.fruit = "durian";
+console.log("Fruit:\t",po.fruit);
+console.log("Salad:\t",po.salad);
+console.log("obj.salad\t",obj.salad);
+console.log("obj\t",obj);
+console.log("obj.salad.what\t",obj.salad.what);
+console.log("obj\t",obj);
+console.log("po.salad.what\t",po.salad.what);
+console.log("obj\t",obj);
+console.log("po.salad.what.huh.zuh\t", po.salad.what.huh.zuh);
+console.log("obj\t",obj);
+console.log("salad" in po);
+console.log("dessert" in po);
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Fruit:	 durian
+Salad:	 {}
+obj.salad	 {}
+obj	 { fruit: 'durian', salad: {} }
+obj.salad.what	 {}
+obj	 { fruit: 'durian', salad: { what: {} } }
+po.salad.what	 {}
+obj	 { fruit: 'durian', salad: { what: {} } }
+po.salad.what.huh.zuh	 {}
+obj	 { fruit: 'durian', salad: { what: { huh: [Object] } } }
+true
+false
+undefined
+#+end_example
+
+**** Autovivify Perl Style with Ruby :ruby:
+
+I copied and pasted Viva, changed its name to AutoViva, removed its
+default parameter and just had it create itself instead.
+
+ #+BEGIN_SRC ruby :exports both :session x
+ class AutoViva
+   def initialize()
+   end
+   def write_to_instance(m,*args)
+     instance_name = ("@"+m.to_s)[0..-2] # get rid of =
+     instance_variable_set(instance_name, args[0])  
+   end
+   def read_from_instance(m)
+     instance_name = "@"+m.to_s
+     if not instance_variable_defined?(instance_name)
+       instance_variable_set(instance_name, AutoViva.new())
+     end
+     return instance_variable_get(instance_name)
+   end
+   def method_missing(m, *args, &block)
+     ms = m.to_s
+     if ms[-1] == "="
+       self.write_to_instance(m,*args)
+     else
+       self.read_from_instance(m)
+     end
+   end
+ end
+ v = AutoViva.new()
+ # this actually calls v.c=("x")
+ v.c = "x"
+ v.a.b.c.d
+ v.a.b.c.e = :liskovviolation
+ v2 = AutoViva.new()
+ v2.a = :instance
+ [v2.inspect, v.inspect]
+#+END_SRC
+
+ #+RESULTS:
+ : ["#<AutoViva:0x000055e7052fadb8 @a=:instance>", "#<AutoViva:0x000055e705306ac8 @c=\"x\", @a=#<AutoViva:0x000055e705300858 @b=#<AutoViva:0x000055e705300718 @c=#<AutoViva:0x000055e7053005d8 @d=#<AutoViva:0x000055e705300498>, @e=:liskovviolation>>>>"]
+
+
+** Dangers of meta-programming
+   - It's confusing
+   - You can't grep for function definitions
+   - It surprises people
+   - You need a running system to test semantics :(
+   - Often you need to use a debugger or debugger tools to figure out what is being called.
+     - You can always throw an exception and/or force a backtrace.
+       - `console.trace()` :js:
+       - `exception.backtrace` :rb:
 
 ** Copyright Statement
 
@@ -352,7 +501,12 @@ Code is (c) 2021 Abram Hindle.
 Unless stated otherwise, assume Python license, or Ruby license
 depending on the example.
 
+
 ** Init ORG-MODE
+
+I use this section to ensure I can run the examples. You might not
+need this, but I eval the following elisp before I start the
+presentation
 
 #+BEGIN_SRC elisp
 ;; I need this for org-mode to work well
@@ -371,6 +525,7 @@ depending on the example.
 (org-babel-do-load-languages 'org-babel-load-languages '((C . t)))
 (org-babel-do-load-languages 'org-babel-load-languages '((ruby . t)))
 (org-babel-do-load-languages 'org-babel-load-languages '((js . t)))
+(org-babel-do-load-languages 'org-babel-load-languages '((perl . t)))
 (org-babel-do-load-languages 'org-babel-load-languages '((python . t)))
 (setq org-babel-js-function-wrapper
       "process.stdout.write(require('util').inspect(function(){\n%s\n}(), { maxArrayLength: null, maxStringLength: null, breakLength: Infinity, compact: true }))")
@@ -434,3 +589,15 @@ XYZ.new()
 
 #+RESULTS:
 : #<XYZ:0x0000563dee304418>
+
+#+BEGIN_SRC perl :exports both
+use Data::Dumper;
+$a = {};
+$a->{b}->{c};
+Dumper($a);
+#+END_SRC
+
+#+RESULTS:
+: $VAR1 = {
+:           'b' => {}
+:         };
